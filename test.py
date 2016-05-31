@@ -51,7 +51,10 @@ corners = (
 )
 
 
-raw_data = json.load(open("data/schulen.geojson"))
+def NoneIsZero(value):
+    return 0 if value is None else value
+
+raw_data = geojson.load(open("data/schulen.geojson"))
 schools = [
     {
         'name': feature['properties'].get('Name'),
@@ -59,9 +62,11 @@ schools = [
         'position': utm.to_latlon(feature['geometry']['coordinates'][0],
                                   feature['geometry']['coordinates'][1],
                                   32, 'N'),
-        'value': feature['properties'].get('schueleranzahl', 0),
+        'value': NoneIsZero(feature['properties'].get('schueleranzahl')),
     } for feature in raw_data['features']
 ]
+data = schools
+
 raw_data = json.load(open("data/gruenflaechen.geojson"))
 gruenflaechen = [
     {
@@ -70,10 +75,11 @@ gruenflaechen = [
         'position': utm.to_latlon(feature['geometry']['coordinates'][0],
                                   feature['geometry']['coordinates'][1],
                                   32, 'N'),
+        'value': 50,
     } for feature in raw_data['features']
 ]
 
-data = gruenflaechen
+data = schools
 
 
 def count_by_position(regions, data, key=None):
@@ -103,9 +109,9 @@ def count_by_region(regions, data, key=None):
         count[entry['region']] += int(entry.get(key, 1))
     return count
 
-# count = count_by_region(borders, data, key="value")
+count = count_by_region(borders, data, key="value")
 # count = count_by_region(borders, data)
-count = count_by_position(borders, data)
+# count = count_by_position(borders, data)
 
 normalize = matplotlib.colors.Normalize(vmin=min(count.values()),
                                         vmax=max(count.values()))
@@ -120,8 +126,10 @@ m = Basemap(projection='merc',
 ax = plt.gca()
 
 positions = zip(*[entry['position'] for entry in data])
-# values = [float(entry['value']) / 10 for entry in data]
-values = 10
+values = {entry['name']: entry['value'] for entry in data}
+print values
+values = [float(entry['value']) / 10 for entry in data]
+# values = 10
 
 patches = []
 counts = []
@@ -160,7 +168,7 @@ plt.colorbar(p,
              ticks=range(max(counts) + 1),
              boundaries=range(max(counts) + 1))
 
-# plt.title("Anzahl der Schulen")
-plt.title(u"Anzahl der Grünflächen")
+plt.title("Anzahl der Schulen")
+# plt.title(u"Anzahl der Grünflächen")
 
 plt.show()
